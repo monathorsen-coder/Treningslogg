@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Treningslogg V2</title>
+
+<style>
+
+:root{
+--bg:#f3f5f7;
+--card:#ffffff;
+--text:#222;
+--primary:#0a84ff;
+}
+
+@media (prefers-color-scheme: dark){
+
+:root{
+--bg:#111827;
+--card:#1f2937;
+--text:#f3f4f6;
+--primary:#3b82f6;
+}
+
+}
+
+body{
+font-family:Arial,sans-serif;
+background:var(--bg);
+color:var(--text);
+margin:0;
+padding:15px;
+max-width:900px;
+margin:auto;
+}
+
+.card{
+background:var(--card);
+border-radius:12px;
+padding:15px;
+margin-bottom:15px;
+}
+
+input,select{
+width:100%;
+padding:10px;
+margin-top:5px;
+margin-bottom:10px;
+box-sizing:border-box;
+}
+
+button{
+background:var(--primary);
+color:white;
+border:none;
+padding:10px 14px;
+border-radius:8px;
+cursor:pointer;
+margin:3px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+th,td{
+border:1px solid #ccc;
+padding:8px;
+}
+
+.small{
+font-size:0.9em;
+opacity:.8;
+}
+
+.record{
+color:green;
+font-weight:bold;
+}
+
+.timer{
+font-size:28px;
+font-weight:bold;
+}
+
+.exercise{
+padding:8px;
+background:#ececec;
+margin-bottom:6px;
+border-radius:6px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>💪 Treningslogg V2</h1>
+
+<div class="card">
+
+<h2>Programmer</h2>
+
+<input id="programName" placeholder="Nytt program">
+
+<button onclick="addProgram()">
+Legg til program
+</button>
+
+<select id="programSelect"></select>
+
+</div>
+
+<div class="card">
+
+<h2>Øvelser i program</h2>
+
+<input id="exerciseName"
+placeholder="Ny øvelse">
+
+<button onclick="addExercise()">
+Legg til øvelse
+</button>
+
+<div id="exerciseList"></div>
+
+</div>
+
+<div class="card">
+
+<h2>🏋️ Start økt</h2>
+
+<select id="trainingExercise"></select>
+
+<div id="lastResult" class="small"></div>
+
+<input id="weight"
+type="number"
+placeholder="Vekt kg">
+
+<input id="reps"
+type="number"
+placeholder="Repetisjoner">
+
+<button onclick="saveSet()">
+Lagre sett
+</button>
+
+<button onclick="startTimer()">
+90 sek hvile
+</button>
+
+<div class="timer" id="timer"></div>
+
+</div>
+
+<div class="card">
+
+<h2>🏆 Personlige rekorder</h2>
+
+<div id="records"></div>
+
+</div>
+
+<div class="card">
+
+<h2>📜 Historikk</h2>
+
+<table>
+
+<thead>
+<tr>
+<th>Dato</th>
+<th>Øvelse</th>
+<th>Kg</th>
+<th>Reps</th>
+</tr>
+</thead>
+
+<tbody id="history"></tbody>
+
+</table>
+
+</div>
+
+<script>
+
+let programs =
+JSON.parse(
+localStorage.getItem("programs")
+) || {
+
+"Fullkropp A":[
+"Knebøy",
+"Benkpress",
+"Nedtrekk"
+]
+
+};
+
+let history =
+JSON.parse(
+localStorage.getItem("history")
+) || [];
+
+function saveData(){
+
+localStorage.setItem(
+"programs",
+JSON.stringify(programs)
+);
+
+localStorage.setItem(
+"history",
+JSON.stringify(history)
+);
+
+}
+
+function populatePrograms(){
+
+let select =
+document.getElementById(
+"programSelect"
+);
+
+select.innerHTML="";
+
+Object.keys(programs)
+.forEach(name=>{
+
+let opt =
+document.createElement("option");
+
+opt.value=name;
+opt.text=name;
+
+select.add(opt);
+
+});
+
+populateExercises();
+
+}
+
+function populateExercises(){
+
+let current =
+document.getElementById(
+"programSelect"
+).value;
+
+let list =
+document.getElementById(
+"exerciseList"
+);
+
+let train =
+document.getElementById(
+"trainingExercise"
+);
+
+list.innerHTML="";
+train.innerHTML="";
+
+if(!programs[current]) return;
+
+programs[current]
+.forEach((e,i)=>{
+
+let div =
+document.createElement("div");
+
+div.className="exercise";
+
+div.innerHTML=
+e+
+' <button onclick="deleteExercise('+i+')">Slett</button>';
+
+list.appendChild(div);
+
+let opt =
+document.createElement("option");
+
+opt.value=e;
+opt.text=e;
+
+train.add(opt);
+
+});
+
+showLastResult();
+
+}
+
+function addProgram(){
+
+let name =
+document.getElementById(
+"programName"
+).value.trim();
+
+if(!name) return;
+
+if(programs[name]) return;
+
+programs[name]=[];
+
+saveData();
+
+populatePrograms();
+
+document.getElementById(
+"programName"
+).value="";
+
+}
+
+function addExercise(){
+
+let name =
+document.getElementById(
+"exerciseName"
+).value.trim();
+
+if(!name) return;
+
+let program =
+document.getElementById(
+"programSelect"
+).value;
+
+programs[program].push(name);
+
+saveData();
+
+populateExercises();
+
+document.getElementById(
+"exerciseName"
+).value="";
+
+}
+
+function deleteExercise(index){
+
+let program =
+document.getElementById(
+"programSelect"
+).value;
+
+programs[program]
+.splice(index,1);
+
+saveData();
+
+populateExercises();
+
+}
+
+function showLastResult(){
+
+let ex =
+document.getElementById(
+"trainingExercise"
+).value;
+
+let previous =
+history
+.reverse()
+.find(x=>x.exercise===ex);
+
+history.reverse();
+
+let box =
+document.getElementById(
+"lastResult"
+);
+
+if(previous){
+
+box.innerHTML=
+"Forrige: "
++previous.weight+
+" kg × "
++previous.reps;
+
+}else{
+
+box.innerHTML=
+"Ingen tidligere registrering";
+
+}
+
+}
+
+function saveSet(){
+
+let exercise =
+document.getElementById(
+"trainingExercise"
+).value;
+
+let weight =
+Number(
+document.getElementById(
+"weight"
+).value
+);
+
+let reps =
+Number(
+document.getElementById(
+"reps"
+).value
+);
+
+if(!weight || !reps) return;
+
+history.push({
+
+date:
+new Date()
+.toLocaleDateString(),
+
+exercise,
+
+weight,
+
+reps
+
+});
+
+saveData();
+
+renderHistory();
+
+renderRecords();
+
+showLastResult();
+
+document.getElementById(
+"weight"
+).value="";
+
+document.getElementById(
+"reps"
+).value="";
+
+}
+
+function renderHistory(){
+
+let tbody =
+document.getElementById(
+"history"
+);
+
+tbody.innerHTML="";
+
+[...history]
+.reverse()
+.forEach(item=>{
+
+let tr =
+document.createElement("tr");
+
+tr.innerHTML=
+
+"<td>"+item.date+"</td>"+
+"<td>"+item.exercise+"</td>"+
+"<td>"+item.weight+"</td>"+
+"<td>"+item.reps+"</td>";
+
+tbody.appendChild(tr);
+
+});
+
+}
+
+function renderRecords(){
+
+let container =
+document.getElementById(
+"records"
+);
+
+container.innerHTML="";
+
+let exercises =
+[...new Set(
+history.map(x=>x.exercise)
+)];
+
+exercises.forEach(ex=>{
+
+let rows =
+history.filter(
+x=>x.exercise===ex
+);
+
+let maxWeight =
+Math.max(
+...rows.map(x=>x.weight)
+);
+
+let maxReps =
+Math.max(
+...rows.map(x=>x.reps)
+);
+
+let div =
+document.createElement("div");
+
+div.innerHTML=
+
+"<div class='record'>"+
+ex+
+"</div>" +
+
+"Tyngste sett: "
++maxWeight+
+" kg<br>"+
+
+"Beste reps: "
++maxReps+
+"<br><br>";
+
+container.appendChild(div);
+
+});
+
+}
+
+let countdown;
+
+function startTimer(){
+
+clearInterval(countdown);
+
+let s=90;
+
+document.getElementById(
+"timer"
+).textContent=s;
+
+countdown=setInterval(()=>{
+
+s--;
+
+document.getElementById(
+"timer"
+).textContent=s;
+
+if(s<=0){
+
+clearInterval(countdown);
+
+document.getElementById(
+"timer"
+).textContent=
+"✅ Ferdig";
+
+}
+
+},1000);
+
+}
+
+document
+.getElementById("programSelect")
+.addEventListener(
+"change",
+populateExercises
+);
+
+document
+.getElementById("trainingExercise")
+.addEventListener(
+"change",
+showLastResult
+);
+
+populatePrograms();
+
+renderHistory();
+
+renderRecords();
+
+</script>
+
+</body>
+</html>
